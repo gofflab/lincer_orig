@@ -1,0 +1,5 @@
+
+
+PFAM
+ - All transcripts from a given gene are flagged as containing a PFam domain if at least one transcript contains a Pfam domain
+ - Attributes written to gtf are PFam hits for a given transcript only.  (not extended to gene-level)
