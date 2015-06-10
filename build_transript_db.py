@@ -4,9 +4,10 @@
 build-transcript-db.py
 
 Created by Cole Trapnell on 2010-4-11.
-Copyright (c) 2010 Cole Trapnell. All rights reserved.
+Refactored for use on MARCC by Loyal Goff
+Copyright (c) 2015 Loyal Goff. All rights reserved.
 
-last Revision: Feb 25th 2011, Moran Cabili
+last Revision: Jun 9th, Loyal Goff
 """
 
 import sys
