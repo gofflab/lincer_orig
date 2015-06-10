@@ -32,7 +32,7 @@ import time
 from types import *
 
 # Needed to handle LSF submissions and polling
-import LSFlib
+import LSFlib # Must be replaced/avoided in MARCC slurm environment
 
 # Needed for linc naming conventions
 import GTF2Genbank
@@ -53,7 +53,7 @@ use_message = '''
      -o/--output-dir                <string>    [ default: ./ ]
      -p/--threads-per-node          <int>       [ default: 1  ]
      -n/--lsf-nodes                 <int>       [ default: 10  ]
-     --system                       <string> ("Broad" or "Valor") [ default: Valor]
+     --system                       <string> ("Broad" or "Valor" or "MARCC") [ default: MARCC]
      --sample-reads                 <filename>
      --ref-sequence                 <dir>
      -g/--genome                    <string>    [ default: hg19 ]
@@ -373,6 +373,53 @@ def bsub_cmd(cmd_str, job_group=None, blocking=False, outfilename=None, errfilen
     #bsub_str.extend(["-oo", out_file, "-f", '\"%s <\"' % out_file])
     bsub_str.extend(["-oo", out_file])
     bsub_str.extend(["-eo", err_file])
+    bsub_str.extend(["'%s'" % cmd_str])
+    return " ".join(bsub_str)
+
+def sbatch_cmd(cmd_str, job_group=None, blocking=False, outfilename=None, errfilename=None, queue_name=None, job_mem=None, job_cores=1, notify=None):
+    #return cmd_str
+    global lsf_queue
+
+    if lsf_queue == "local" or queue_name == "local":
+        return "%s 1>%s 2>%s" % (cmd_str, outfilename, errfilename)
+        
+    if queue_name == None:
+        queue_name = lsf_queue
+
+    if outfilename == None:
+        out_file = tmp_name("bsub_out_")
+    else:
+        out_file = outfilename
+    if errfilename == None:
+        err_file = tmp_name("err_")
+    else:
+        err_file = errfilename
+    
+    if notify == None:
+        notify = params.system_params.notify
+    
+    if blocking == True:
+        bsub_str = ["srun"]
+    else:
+        bsub_str = ["sbatch"]
+
+    if notify:
+        bsub_str.extend(["--mail=type=END"])
+    
+    bsub_str.extend(["--partition=%s" % queue_name])
+    
+    if job_group != None:
+        #bsub_str.extend(["-g", job_group])
+        pass
+    
+    if job_mem != None and lsf_mem != None:
+        global lsf_mem
+        job_mem = lsf_mem
+        bsub_str.extend(["--mem=%d" % job_mem])
+    
+    #bsub_str.extend(["-oo", out_file, "-f", '\"%s <\"' % out_file])
+    bsub_str.extend(["-o", out_file])
+    bsub_str.extend(["-e", err_file])
     bsub_str.extend(["'%s'" % cmd_str])
     return " ".join(bsub_str)
 
