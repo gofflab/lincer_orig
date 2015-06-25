@@ -196,7 +196,6 @@ class SlurmJob(object):
 				kv_pairs = [x.split(" ") for x in tmp_lines]
 				kv_pairs = [item for sublist in kv_pairs for item in sublist]
 				kv_pairs = [x.split("=") for x in kv_pairs]
-				keys,values = [x.split("=") for x in kv_pairs]
 				keys = [x[0] for x in kv_pairs]
 				values = [x[1] for x in kv_pairs]
 				tmpDict = dict(zip(keys,values))
