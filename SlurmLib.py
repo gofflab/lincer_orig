@@ -194,7 +194,7 @@ class SlurmJob(object):
 				#else: job still exists, update its status	
 				tmp_lines = [x.rstrip() for x in tmp.stdout.readlines()]
 				kv_pairs = [x.split(" ") for x in tmp_lines]
-				keys,values = [x.split("=") for x in kb_pairs]
+				keys,values = [x.split("=") for x in kv_pairs]
 				tmpDict = dict(zip(keys,values))
 				#pp(tmpDict)
 				self.status = tmpDict['JobState']
