@@ -95,7 +95,7 @@ class SlurmJob(object):
 		
 		sbatch_str.extend(["-o", self.outfile])
 		sbatch_str.extend(["-e", self.errfile])
-		sbatch_str.extend(["--wrap",self.cmd_str])
+		sbatch_str.extend(["--wrap",'"self.cmd_str"'])
 		
 		self.sbatch_str = sbatch_str
 		
