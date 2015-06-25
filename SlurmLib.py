@@ -102,6 +102,7 @@ class SlurmJob(object):
 		#Handle if queue == "local"
 		if self.queue == "local":
 			local_str = [""]
+			local_str.extend([self.cmd_str])
 			local_str.extend([">", self.outfile])
 			local_str.extend(["2>", self.errfile])
 			
@@ -119,7 +120,7 @@ class SlurmJob(object):
 			print >>sys.stderr, "Job already submitted"
 			return 0# what do you return here?
 		
-		self.submit_proc = subprocess.Popen(self.sbatch_str,shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+		self.submit_proc = subprocess.Popen(self.sbatch_str,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		
 		#Handle local jobs
 		if self.queue == "local":
