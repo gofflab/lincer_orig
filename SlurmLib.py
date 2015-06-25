@@ -195,7 +195,10 @@ class SlurmJob(object):
 				tmp_lines = [x.strip() for x in tmp.stdout.readlines()]
 				kv_pairs = [x.split(" ") for x in tmp_lines]
 				kv_pairs = [item for sublist in kv_pairs for item in sublist]
+				kv_pairs = [x.split("=") for x in kv_pairs]
 				keys,values = [x.split("=") for x in kv_pairs]
+				keys = [x[0] for x in kv_pairs]
+				values = [x[1] for x in kv_pairs]
 				tmpDict = dict(zip(keys,values))
 				#pp(tmpDict)
 				self.status = tmpDict['JobState']
