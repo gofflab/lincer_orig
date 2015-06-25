@@ -120,8 +120,8 @@ class SlurmJob(object):
 			print >>sys.stderr, "Job already submitted"
 			return 0# what do you return here?
 		
-		self.submit_proc = subprocess.Popen(self.sbatch_str,shell=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-		
+		#self.submit_proc = subprocess.Popen(self.sbatch_str,shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+		self.submit_proc = subprocess.Popen(str(self),shell=False,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 		#Handle local jobs
 		if self.queue == "local":
 			self.submit_flag = True
