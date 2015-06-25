@@ -192,8 +192,9 @@ class SlurmJob(object):
 						print >>sys.stderr, "waited, job did not run " + tmp_err
 						return tmp_err
 				#else: job still exists, update its status	
-				tmp_lines = [x.rstrip() for x in tmp.stdout.readlines()]
+				tmp_lines = [x.strip() for x in tmp.stdout.readlines()]
 				kv_pairs = [x.split(" ") for x in tmp_lines]
+				kv_pairs = [item for sublist in kv_pairs for item in sublist]
 				keys,values = [x.split("=") for x in kv_pairs]
 				tmpDict = dict(zip(keys,values))
 				#pp(tmpDict)
