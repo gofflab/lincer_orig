@@ -32,8 +32,9 @@ import math
 import time
 from types import *
 
-# Needed to handle LSF submissions and polling
-import LSFlib # Must be replaced/avoided in MARCC slurm environment
+# Needed to handle job submissions and polling
+#import LSFlib # Must be replaced/avoided in MARCC slurm environment
+import SlurmLib # Here is the MARCC solution
 
 # Needed for linc naming conventions
 import GTF2Genbank
@@ -45,7 +46,7 @@ import sys,getopt
 from misc import rstrips
 
 use_message = '''
- build-transcript-db is a script to build a single "meta-assembly" from many Cufflinks assemblies
+ build-transcript-db is a script to build a single "meta-assembly" from many Cufflinks assemblies and process for long non-coding RNAs
 
  Usage:
      build-transcript-db [options] <primary_asm_list.txt>
@@ -104,13 +105,24 @@ lsf_mem = 64
 #cufflinks_queue="compbio-week"
 
 #Valor-specific global settings
-lsf_queue = "normal_parallel"   # Changed from short_parallel , no need for parallel
-cufflinks_queue="normal_parallel"
-pfam_db = "/n/rinn_data1/indexes/Pfam/"
+#lsf_queue = "normal_parallel"   # Changed from short_parallel , no need for parallel
+#cufflinks_queue="normal_parallel"
+#pfam_db = "/n/rinn_data1/indexes/Pfam/"
+#aa_converter =  "perl /n/rinn_data1/user-supported/bin/seqToAminoAcid.pl"
+#gffread = "gffread"
+#pfammer = "perl /n/rinn_data1/indexes/Pfam/Tools/PfamScan/pfam_scan.pl"
+#csf_bin = "/n/rinn_data1/users/lgoff/sw/PhyloCSF/batchPhyloCSF_Loyal.ml.exe"
+
+#MARCC-specific global settings
+lsf_queue = "shared"
+cufflinks_queue="shared"
+#TODO: update component binary locations for MARCC
+pfam_db = "/n/rinn_data1/indexes/Pfam/Pfam28.0/"
 aa_converter =  "perl /n/rinn_data1/user-supported/bin/seqToAminoAcid.pl"
 gffread = "gffread"
-pfammer = "perl /n/rinn_data1/indexes/Pfam/Tools/PfamScan/pfam_scan.pl"
-csf_bin = "/n/rinn_data1/users/lgoff/sw/PhyloCSF/batchPhyloCSF_Loyal.ml.exe"
+pfammer = "perl /home-3/lgoff2@jhu.edu/apps/PfamScan/pfam_scan.pl"
+csf_bin = "/home-3/lgoff2@jhu.edu/apps/bin/PhyloCSF"
+
 
 #ok_str = "\t\t\t\t[OK]\n"
 fail_str = "\t[FAILED]\n"
@@ -134,7 +146,7 @@ class TestParams:
             self.threads = threads
             self.keep_tmp = keep_tmp
             self.lsf_nodes = 10
-            self.system = "valor"
+            self.system = "MARCC"
             self.notify = True
 
 
@@ -1030,7 +1042,10 @@ def calculate_csf(bed_filename, num_lsf_nodes, genome):
             csf_cmd = csf_bin + ' -sp %s -strategy GuessLik -bestORF %d  -best3  -bed %s' % (genome, min_csf_orf, bed)
         else:
             #edited for updated batchPhyloCSF on Valor LAG 3-14-11
-            csf_cmd = csf_bin + ' -s %s -p"--minCodons %d -f3" -f BED --exe=/n/rinn_data1/user-supported/PhyloCSF/PhyloCSF %s' % (genome, min_csf_orf, bed)
+            #csf_cmd = csf_bin + ' -s %s -p"--minCodons %d -f3" -f BED --exe=/n/rinn_data1/user-supported/PhyloCSF/PhyloCSF %s' % (genome, min_csf_orf, bed)
+
+            #May not be correct, but this is the 'pseudo-modified version based on MARCC location'
+            csf_cmd = csf_bin + ' -s %s -p"--minCodons %d -f3" -f BED --exe=/home-3/lgoff2@jhu.edu/apps/bin/PhyloCSF %s' % (genome, min_csf_orf, bed)
         
         #Cole's original Method
         #csf_bsub_cmd = bsub_cmd(csf_cmd, "/csf_calc", blocking=True, outfilename=csf_score_filename, job_cores=1, job_mem=2)
@@ -1042,7 +1057,11 @@ def calculate_csf(bed_filename, num_lsf_nodes, genome):
         #    time.sleep(5)
         
         #Using LSFlib
-        csf_bsub_job = LSFlib.LSFJob(csf_cmd,job_group = "/csf_calc",blocking=False, notify = False, queue_name=lsf_queue, outfilename = csf_score_filename,job_cores=1,job_mem=4)
+        #csf_bsub_job = LSFlib.LSFJob(csf_cmd,job_group = "/csf_calc",blocking=False, notify = False, queue_name=lsf_queue, outfilename = csf_score_filename,job_cores=1,job_mem=4)
+
+        #Using SlurmLib
+        csf_bsub_job = SlurmLib.SlurmJob(csf_cmd,job_group = "/csf_calc",blocking=False, notify = False, queue_name=lsf_queue, outfilename = csf_score_filename,job_cores=1,job_mem=4)
+
 
         ret_val=-1
         while ret_val != 0:
@@ -1197,7 +1216,8 @@ def get_pfam_hit_transcripts(gtf_filename, fasta, num_lsf_nodes, annotated_gtf_f
         
         #Using LSFlib for Job sumission
         #pfam_job = LSFlib.LSFJob(cmd,job_group="/pfam_search",outfilename = hmmer_out_filename, notify = False, queue_name=lsf_queue, blocking=False,job_cores=1,job_mem=4)
-        pfam_job = LSFlib.LSFJob(cmd,job_group="/pfam_search", notify = False, queue_name=lsf_queue, blocking=False,job_cores=1,job_mem=4)
+        #pfam_job = LSFlib.LSFJob(cmd,job_group="/pfam_search", notify = False, queue_name=lsf_queue, blocking=False,job_cores=1,job_mem=4)
+        pfam_job = SlurmLib.SlurmJob(cmd,job_group="/pfam_search", notify = False, queue_name=lsf_queue, blocking=False,job_cores=1,job_mem=4)
         #Contains file names as keys and jobs as values
         hmmer_out_filenames[hmmer_out_filename] = pfam_job
         
@@ -1297,7 +1317,7 @@ def get_pfam_hit_transcripts(gtf_filename, fasta, num_lsf_nodes, annotated_gtf_f
 
 #THIS WAS TRAPPED IN AN INFINITE LOOP
 def check_lsf_output(fileDict):
-    """Checks a dictionary of k=ouput_file_names v=LSFlib.LSFJob Instances"""
+    """Checks a dictionary of k=ouput_file_names v=SlurmLib.SlurmJob Instances"""
     print >> sys.stderr, "Moran debug: check LSF output"
     reruns = {}
     for fname in fileDict.keys():
