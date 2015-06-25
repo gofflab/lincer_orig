@@ -210,6 +210,7 @@ class SlurmJob(object):
 		if self.submit_flag:
 			jobID_search = re.search("[0-9]+",self.submit_status)
 			#self.jobID = int(jobID_search.group().strip("><"))
+			self.jobID = int(jobID_search.group().rstrip())
 			return
 		else:
 			print "Job not yet submitted."
