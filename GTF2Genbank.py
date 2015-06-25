@@ -221,7 +221,7 @@ def main(argv=None):
             gbdbCursor = dbConn.gbdbConnect(gbdbname=genome)
         else:
             pygrConnection = genomelib.pygrConnect(genome,useWorldbase=False)
-            gbdbCursor = dbConn.valorGbdbConnect(gbdbname=genome)
+            gbdbCursor = dbConn.gbdbConnect(gbdbname=genome)
         for gene in genes:
             interval = gene.toInterval()
             interval.genome = genome

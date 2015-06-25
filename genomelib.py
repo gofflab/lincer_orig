@@ -109,7 +109,7 @@ def isMasked(s):
 #SeqPath = pygr.Data.Bio.Seq.Genome.HUMAN.hg18
 
 def pygrConnect(genome="hg18",useWorldbase = True):
-    if genome in ["hg18","hg19"]: useWorldbase = False
+    if genome in ["hg18","hg19","mm9","mm10"]: useWorldbase = False
     if useWorldbase:
         from pygr import worldbase
         if genome == "hg18":
@@ -124,12 +124,12 @@ def pygrConnect(genome="hg18",useWorldbase = True):
             raise AssertionError ("No genome by that name in worldbase. (I think)...")
     else:
         from pygr import seqdb
-        if genome == "hg18":
-            res = seqdb.SequenceFileDB('/fg/compbio-t/lgoff/magda/references/human/genome/hg18/hg18.fa')
-        elif genome == "hg19":
-            res = seqdb.SequenceFileDB('/n/rinn_data1/indexes/human/hg19/hg19.fa')
+        if genome == "hg19":
+            res = seqdb.SequenceFileDB('/home-3/lgoff2@jhu.edu/work/indexes/human/hg19/bowtie2/hg19.fa')
         elif genome == "mm9":
-            res = seqdb.SequenceFileDB("/n/rinn_data1/indexes/igenomes/Mus_musculus/UCSC/mm9/Sequence/Chromosomes/mm9.fa")
+            res = seqdb.SequenceFileDB("/home-3/lgoff2@jhu.edu/work/indexes/mouse/mm9/bowtie2/mm9.fa")
+        elif genome == "mm9":
+            res = seqdb.SequenceFileDB("/home-3/lgoff2@jhu.edu/work/indexes/mouse/mm10/bowtie2/mm10.fa")
         else:
             raise AssertionError ("I'm not sure how to handle that genome build yet...sorry.")
     return res

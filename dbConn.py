@@ -22,7 +22,7 @@ def broadConnect():
 #Connection to UCSC Genome Browser MySQL Database
 #
 ###################
-def gbdbConnect(gbdbname = "hg18"):
+def gbdbConnect(gbdbname = "hg19"):
     gbHost = "genome-mysql.cse.ucsc.edu"
     gbUser = "genome"
     gbdb = MySQLdb.connect(host=gbHost,user=gbUser,db=gbdbname)

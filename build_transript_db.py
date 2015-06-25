@@ -1789,402 +1789,401 @@ def cuffmerge(params,gtf_filename_manifest,ref_gtf=None,outDir="./tmp"):
         exit(1)
 
 
-def main(argv=None):
-    warnings.filterwarnings("ignore", "tmpnam is a potential security risk")
+# def main(argv=None):
+#     warnings.filterwarnings("ignore", "tmpnam is a potential security risk")
     
-    # Initialize default parameter values
-    global params
-    params = TestParams()
+#     # Initialize default parameter values
+#     global params
+#     params = TestParams()
     
-    try:
-        if argv is None:
-            argv = sys.argv
-            args = params.parse_options(argv)
-            params.check()
+#     try:
+#         if argv is None:
+#             argv = sys.argv
+#             args = params.parse_options(argv)
+#             params.check()
         
-        if params.system_params.system == "Broad": 
-            global lsf_queue
-            global cufflinks_queue
-            global pfam_db
-            global aa_converter
-            global gffread
-            global pfammer
-            global csf_bin
+#         if params.system_params.system == "Broad": 
+#             global lsf_queue
+#             global cufflinks_queue
+#             global pfam_db
+#             global aa_converter
+#             global gffread
+#             global pfammer
+#             global csf_bin
             
-            csf_bin = "~mlin/bin/batchPhyloCSF"
-            #lsf_queue = "regevlab"
-            #cufflinks_queue="regevlab"
-            pfam_db = "/ahg/regev/users/nmcabili/Programs/Hmmer/pfam"
-            aa_converter =  "perl /ahg/regev/users/nmcabili/Src/scripts/pfamAnalysis/seqToAminoAcid.pl"
-            gffread = "gffread"
-            pfammer = "perl /ahg/regev/users/nmcabili/Programs/Hmmer/PfamScan/pfam_scan.pl"
+#             csf_bin = "~mlin/bin/batchPhyloCSF"
+#             #lsf_queue = "regevlab"
+#             #cufflinks_queue="regevlab"
+#             pfam_db = "/ahg/regev/users/nmcabili/Programs/Hmmer/pfam"
+#             aa_converter =  "perl /ahg/regev/users/nmcabili/Src/scripts/pfamAnalysis/seqToAminoAcid.pl"
+#             gffread = "gffread"
+#             pfammer = "perl /ahg/regev/users/nmcabili/Programs/Hmmer/PfamScan/pfam_scan.pl"
         
         
-        global run_log
-        global run_cmd
+#         global run_log
+#         global run_cmd
         
-        print >> sys.stderr
-        print >> sys.stderr, "[%s] Beginning transcriptome build (suite v%s)" % (right_now(), get_version())
-        print >> sys.stderr, "-----------------------------------------------"
-        print >> sys.stderr
-        print >> sys.stderr, "  Configuration:"
-        print >> sys.stderr, "     system: %s" % params.system_params.system
-        print >> sys.stderr, "     genome: %s" % params.genome
-        print >> sys.stderr, "     output_dir: %s" % output_dir
-        print >> sys.stderr, "     logging_dir: %s" % logging_dir
-        print >> sys.stderr, "     run log: %s" % run_log
-        #print >> sys.stderr, "     Meta assembly: %s" % ("yes" if run_meta_assembly else "no")
-        #print >> sys.stderr, "     Merged catalog: %s" % ("yes" if merge_catalog_mode else "no")
-        print >> sys.stderr, "     CSF threshold: %f" % csf_score_threshold
-        print >> sys.stderr, "     LSF nodes: %d" % params.system_params.lsf_nodes
-        if lsf_mem != None:
-            print >> sys.stderr, "     LSF memory per node: %d" % lsf_mem
-        else:
-            print >> sys.stderr, "     LSF memory per node: Not specified" 
-        print >> sys.stderr
+#         print >> sys.stderr
+#         print >> sys.stderr, "[%s] Beginning transcriptome build (suite v%s)" % (right_now(), get_version())
+#         print >> sys.stderr, "-----------------------------------------------"
+#         print >> sys.stderr
+#         print >> sys.stderr, "  Configuration:"
+#         print >> sys.stderr, "     system: %s" % params.system_params.system
+#         print >> sys.stderr, "     genome: %s" % params.genome
+#         print >> sys.stderr, "     output_dir: %s" % output_dir
+#         print >> sys.stderr, "     logging_dir: %s" % logging_dir
+#         print >> sys.stderr, "     run log: %s" % run_log
+#         #print >> sys.stderr, "     Meta assembly: %s" % ("yes" if run_meta_assembly else "no")
+#         #print >> sys.stderr, "     Merged catalog: %s" % ("yes" if merge_catalog_mode else "no")
+#         print >> sys.stderr, "     CSF threshold: %f" % csf_score_threshold
+#         print >> sys.stderr, "     LSF nodes: %d" % params.system_params.lsf_nodes
+#         if lsf_mem != None:
+#             print >> sys.stderr, "     LSF memory per node: %d" % lsf_mem
+#         else:
+#             print >> sys.stderr, "     LSF memory per node: Not specified" 
+#         print >> sys.stderr
         
-        start_time = datetime.now()
-        prepare_output_dir()
-        #now=datetime.datetime.now()
-        #curr_time=now.strftime("%Y%m%d_%H%M")
-
-        
-        run_log = open(logging_dir + "run.log", "w", 0)
-        run_cmd = " ".join(argv)
-        print >> run_log, run_cmd
-
-        if len(args) < 1:
-            raise Usage(use_message)
-
-        transfrag_list_filename = args[0]
-        transfrag_list_file = open(args[0], "r")
-
-        if params.ref_gtf != None:
-            test_input_files([params.ref_gtf])
-        else:
-            print >> sys.stderr, "Warning: no reference GTF provided!"
-        if params.fasta != None:
-            if os.path.isdir(params.fasta) == False:
-                test_input_files([params.fasta])
-
-        if params.mask_gtf != None:
-            test_input_files([params.mask_gtf])
-
-        if params.external_linc_gtf != None:
-            test_input_files([params.external_linc_gtf])
-
-        #############33
-        
-        
-        global non_assembly_mode
-        if non_assembly_mode==1:
-            known_transcript_gtf=args[0]
-            print >> sys.stderr, "Running non assembly mode on %s \n" % (known_transcript_gtf)
-            run_non_assembly_mode(known_transcript_gtf,params)
-            return 0
-        global merge_catalog_mode
-        if merge_catalog_mode==1:
-            gtf_lst_file_name=args[0]
-            gtf_lst_file=open(gtf_lst_file_name)
-            gtf_lst = test_input_files(gtf_lst_file)
-            print >> sys.stderr, "Running  merge catalog mode on %s \n" % (gtf_lst_file_name)
-            run_merge_catalogs(gtf_lst,params.out_prefix )
-            return 0
-        global get_intergenic_mode
-        if get_intergenic_mode==1:
-            transcript_gtf=args[0]
-            print >> sys.stderr, "Running get intergenic mode on %s \n" % (transcript_gtf)
-            out_name="%sIntergenic_%s" % (params.out_prefix,transcript_gtf)
-            run_get_intergenic(transcript_gtf,params,out_name)
-            return 0
-
+#         start_time = datetime.now()
+#         prepare_output_dir()
+#         #now=datetime.datetime.now()
+#         #curr_time=now.strftime("%Y%m%d_%H%M")
 
         
-        #### Part 1: Cufflinks Runs
-        runCuff=1
+#         run_log = open(logging_dir + "run.log", "w", 0)
+#         run_cmd = " ".join(argv)
+#         print >> run_log, run_cmd
+
+#         if len(args) < 1:
+#             raise Usage(use_message)
+
+#         transfrag_list_filename = args[0]
+#         transfrag_list_file = open(args[0], "r")
+
+#         if params.ref_gtf != None:
+#             test_input_files([params.ref_gtf])
+#         else:
+#             print >> sys.stderr, "Warning: no reference GTF provided!"
+#         if params.fasta != None:
+#             if os.path.isdir(params.fasta) == False:
+#                 test_input_files([params.fasta])
+
+#         if params.mask_gtf != None:
+#             test_input_files([params.mask_gtf])
+
+#         if params.external_linc_gtf != None:
+#             test_input_files([params.external_linc_gtf])
+
+#         #############33
+        
+        
+#         global non_assembly_mode
+#         if non_assembly_mode==1:
+#             known_transcript_gtf=args[0]
+#             print >> sys.stderr, "Running non assembly mode on %s \n" % (known_transcript_gtf)
+#             run_non_assembly_mode(known_transcript_gtf,params)
+#             return 0
+#         global merge_catalog_mode
+#         if merge_catalog_mode==1:
+#             gtf_lst_file_name=args[0]
+#             gtf_lst_file=open(gtf_lst_file_name)
+#             gtf_lst = test_input_files(gtf_lst_file)
+#             print >> sys.stderr, "Running  merge catalog mode on %s \n" % (gtf_lst_file_name)
+#             run_merge_catalogs(gtf_lst,params.out_prefix )
+#             return 0
+#         global get_intergenic_mode
+#         if get_intergenic_mode==1:
+#             transcript_gtf=args[0]
+#             print >> sys.stderr, "Running get intergenic mode on %s \n" % (transcript_gtf)
+#             out_name="%sIntergenic_%s" % (params.out_prefix,transcript_gtf)
+#             run_get_intergenic(transcript_gtf,params,out_name)
+#             return 0
 
 
-        if runCuff == 1:
-            print >> sys.stderr, "Running Cufflinks section \n"
-
-            # Check that all the primary assemblies are accessible before starting the time consuming stuff
-            gtf_input_files = test_input_files(transfrag_list_file)
-
-            if params.sample_reads_list != None:
-                sample_reads_file_list = open(params.sample_reads_list)
-                sample_reads = test_input_files(sample_reads_file_list)
-            else:
-                sample_reads = None
-
-            #Meta assembly option:
-            global run_meta_assembly
-            if run_meta_assembly == 1:
-                print >> sys.stderr, "Run Meta-Assembly \n"
-                meta_assemble_gtfs(params, transfrag_list_filename, params.external_linc_gtf)
-            #Meta Cuffcompare option:
-            else:
-                cuffcompare_all_assemblies(gtf_input_files);
+        
+#         #### Part 1: Cufflinks Runs
+#         runCuff=1
 
 
-            current_asm_gtf = "merged_asm/transcripts.gtf"  #This should probably be merged.gtf instead of transcripts.gtf
-            current_asm_ids = get_gtf_ids(current_asm_gtf)
+#         if runCuff == 1:
+#             print >> sys.stderr, "Running Cufflinks section \n"
 
-            #Subtract mask file (before running cuffdiff)
-            unmasked_transcript_ids = current_asm_ids
-            # # If a mask GTF file is provided, cuffcompare against it to import reference metadata
-            if params.mask_gtf != None:
-                 unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
-                 unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
-                 current_asm_gtf = unmasked_gtf
+#             # Check that all the primary assemblies are accessible before starting the time consuming stuff
+#             gtf_input_files = test_input_files(transfrag_list_file)
 
-            # Coverage-based filtering of meta-assembly
-            if sample_reads != None  :
-                deeply_covered = set([])
-                out_dirs = []
-                procs = []
+#             if params.sample_reads_list != None:
+#                 sample_reads_file_list = open(params.sample_reads_list)
+#                 sample_reads = test_input_files(sample_reads_file_list)
+#             else:
+#                 sample_reads = None
 
-                # For each BAM file we want to use to calculate coverage on transcripts in the meta-assembly
-                for reads in sample_reads:
-                    out_dir_name = tmp_name("cufflinks_")
-                    out_dirs.append(out_dir_name)
-
-                    # Spin in this loop until we have a free node at our disposal
-                    while len(procs) == params.system_params.lsf_nodes:
-                        not_done = []
-                        for p in procs:
-                            ret = p.poll()
-                            if ret != None:
-                                if ret != 0:
-                                    print >> sys.stderr, "Error: Cufflinks return error on coverage calculation"
-                                    sys.exit(1)
-                                else:
-                                    not_done.append(p)
-                        if len(not_done) < params.system_params.lsf_nodes:
-                            break
-                        else:
-                            time.sleep(10)
-
-                    p = cufflinks(params, out_dir_name, reads, current_asm_gtf,extra_opts=["-F", "0.05", "--max-bundle-frags", "300000"], lsf=True, curr_queue=cufflinks_queue)
-                    procs.append(p)
-
-                # Wait until all the jobs we spun off have finished.
-                for p in procs:
-                    ret = p.wait()
-                    if ret != None and ret != 0:
-                        print >> sys.stderr, "Error: Cufflinks return error on coverage calculation"
-                        sys.exit(1)
-
-                # Extract IDs of sufficiently covered transcripts from the Cufflinks expression files
-                for out_dir_name in out_dirs:
-                    expr = open(out_dir_name+"/isoforms.fpkm_tracking")
-                    expr.readline()
-                    for line in expr:
-                        line = line.strip()
-                        cols = line.split('\t')
-                        if len(cols) < 11:
-                            continue
-                        cov = float(cols[8])
-                        fpkm_status = cols[12].rstrip()
-                        if cov > params.min_transcript_cov or fpkm_status == "HIDATA":
-                            deeply_covered.add(cols[0])
-                print "full-length transcripts:", len(deeply_covered)
-                deeply_covered_gtf_filename = "probably_full_length.gtf"
-                select_gtf(current_asm_gtf, deeply_covered, deeply_covered_gtf_filename)
-                current_asm_gtf = deeply_covered_gtf_filename
-
-            current_asm_ids = get_gtf_ids(current_asm_gtf)
-
-            #gtf_to_bed(current_asm_gtf)
-
-            # If a reference GTF file is provided, cuffcompare against it to import reference metadata
-            # if params.ref_gtf != None:
-            #    (current_asm_gtf, current_asm_ids) = compare_to_reference(current_asm_gtf, params.ref_gtf, params.fasta)
-
-            #unmasked_transcript_ids = current_asm_ids
-            # If a mask GTF file is provided, cuffcompare against it to import reference metadata
-            #if params.mask_gtf != None:
-            #    unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
-            #    unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
-
-            # Extract (nonrepetive) intergenic transcripts, antisense transcripts, annotated noncoding transcripts,
-            # and any "orphan ORF" transcripts that are either very small peptide coding genes or lincRNAs.  Let these
-            # be "possible noncoding" transcripts
-            # TODO
-
-            long_transcript_ids = set([])
-            # Exclude possible noncoding transcripts shorter than 250bp or which are unspliced.
-            # If a mask GTF file is provided, cuffcompare against it to import reference metadata
-            if params.min_linc_length > 0:
-                long_transcript_ids = get_long_transcripts(current_asm_gtf, params.min_linc_length)
-            #print unmasked_transcript_ids
-
-            min_exon_transcript_ids = set([])
-
-            # Exclude possible noncoding transcripts shorter than 250bp or which are unspliced.
-            # If a mask GTF file is provided, cuffcompare against it to import reference metadata
-            if params.min_linc_exons > 1:
-                min_exon_transcript_ids = get_multiexonic_transcripts(current_asm_gtf, params.min_linc_exons)
+#             #Meta assembly option:
+#             global run_meta_assembly
+#             if run_meta_assembly == 1:
+#                 print >> sys.stderr, "Run Meta-Assembly \n"
+#                 meta_assemble_gtfs(params, transfrag_list_filename, params.external_linc_gtf)
+#             #Meta Cuffcompare option:
+#             else:
+#                 cuffcompare_all_assemblies(gtf_input_files);
 
 
-            lincRNA_ids = current_asm_ids
+#             current_asm_gtf = "merged_asm/transcripts.gtf"  #This should probably be merged.gtf instead of transcripts.gtf
+#             current_asm_ids = get_gtf_ids(current_asm_gtf)
 
-            print >> sys.stderr, "Current asmIds %d" % len(lincRNA_ids)
-            print >> sys.stderr, "Current long transcripts  %d" % len(long_transcript_ids )
-            print >> sys.stderr, "Current unmasked %d" % len(unmasked_transcript_ids)
-            print >> sys.stderr, "Current min exon  %d" % len(min_exon_transcript_ids)
+#             #Subtract mask file (before running cuffdiff)
+#             unmasked_transcript_ids = current_asm_ids
+#             # # If a mask GTF file is provided, cuffcompare against it to import reference metadata
+#             if params.mask_gtf != None:
+#                  unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
+#                  unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
+#                  current_asm_gtf = unmasked_gtf
 
-            lincRNA_ids &= long_transcript_ids
-            print >> sys.stderr, "Current lincIDS after masking SHORT %d" % len(lincRNA_ids)
-            #lincRNA_ids &= unmasked_transcript_ids
-            #print >> sys.stderr, "Current lincIDS after masking CODING %d"  % len(lincRNA_ids)
-            lincRNA_ids &= min_exon_transcript_ids
-            print >> sys.stderr, "Current lincIDS after masking single EXON %d" % len(lincRNA_ids)
+#             # Coverage-based filtering of meta-assembly
+#             if sample_reads != None  :
+#                 deeply_covered = set([])
+#                 out_dirs = []
+#                 procs = []
+
+#                 # For each BAM file we want to use to calculate coverage on transcripts in the meta-assembly
+#                 for reads in sample_reads:
+#                     out_dir_name = tmp_name("cufflinks_")
+#                     out_dirs.append(out_dir_name)
+
+#                     # Spin in this loop until we have a free node at our disposal
+#                     while len(procs) == params.system_params.lsf_nodes:
+#                         not_done = []
+#                         for p in procs:
+#                             ret = p.poll()
+#                             if ret != None:
+#                                 if ret != 0:
+#                                     print >> sys.stderr, "Error: Cufflinks return error on coverage calculation"
+#                                     sys.exit(1)
+#                                 else:
+#                                     not_done.append(p)
+#                         if len(not_done) < params.system_params.lsf_nodes:
+#                             break
+#                         else:
+#                             time.sleep(10)
+
+#                     p = cufflinks(params, out_dir_name, reads, current_asm_gtf,extra_opts=["-F", "0.05", "--max-bundle-frags", "300000"], lsf=True, curr_queue=cufflinks_queue)
+#                     procs.append(p)
+
+#                 # Wait until all the jobs we spun off have finished.
+#                 for p in procs:
+#                     ret = p.wait()
+#                     if ret != None and ret != 0:
+#                         print >> sys.stderr, "Error: Cufflinks return error on coverage calculation"
+#                         sys.exit(1)
+
+#                 # Extract IDs of sufficiently covered transcripts from the Cufflinks expression files
+#                 for out_dir_name in out_dirs:
+#                     expr = open(out_dir_name+"/isoforms.fpkm_tracking")
+#                     expr.readline()
+#                     for line in expr:
+#                         line = line.strip()
+#                         cols = line.split('\t')
+#                         if len(cols) < 11:
+#                             continue
+#                         cov = float(cols[8])
+#                         fpkm_status = cols[12].rstrip()
+#                         if cov > params.min_transcript_cov or fpkm_status == "HIDATA":
+#                             deeply_covered.add(cols[0])
+#                 print "full-length transcripts:", len(deeply_covered)
+#                 deeply_covered_gtf_filename = "probably_full_length.gtf"
+#                 select_gtf(current_asm_gtf, deeply_covered, deeply_covered_gtf_filename)
+#                 current_asm_gtf = deeply_covered_gtf_filename
+
+#             current_asm_ids = get_gtf_ids(current_asm_gtf)
+
+#             #gtf_to_bed(current_asm_gtf)
+
+#             # If a reference GTF file is provided, cuffcompare against it to import reference metadata
+#             # if params.ref_gtf != None:
+#             #    (current_asm_gtf, current_asm_ids) = compare_to_reference(current_asm_gtf, params.ref_gtf, params.fasta)
+
+#             #unmasked_transcript_ids = current_asm_ids
+#             # If a mask GTF file is provided, cuffcompare against it to import reference metadata
+#             #if params.mask_gtf != None:
+#             #    unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
+#             #    unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
+
+#             # Extract (nonrepetive) intergenic transcripts, antisense transcripts, annotated noncoding transcripts,
+#             # and any "orphan ORF" transcripts that are either very small peptide coding genes or lincRNAs.  Let these
+#             # be "possible noncoding" transcripts
+#             # TODO
+
+#             long_transcript_ids = set([])
+#             # Exclude possible noncoding transcripts shorter than 250bp or which are unspliced.
+#             # If a mask GTF file is provided, cuffcompare against it to import reference metadata
+#             if params.min_linc_length > 0:
+#                 long_transcript_ids = get_long_transcripts(current_asm_gtf, params.min_linc_length)
+#             #print unmasked_transcript_ids
+
+#             min_exon_transcript_ids = set([])
+
+#             # Exclude possible noncoding transcripts shorter than 250bp or which are unspliced.
+#             # If a mask GTF file is provided, cuffcompare against it to import reference metadata
+#             if params.min_linc_exons > 1:
+#                 min_exon_transcript_ids = get_multiexonic_transcripts(current_asm_gtf, params.min_linc_exons)
+
+
+#             lincRNA_ids = current_asm_ids
+
+#             print >> sys.stderr, "Current asmIds %d" % len(lincRNA_ids)
+#             print >> sys.stderr, "Current long transcripts  %d" % len(long_transcript_ids )
+#             print >> sys.stderr, "Current unmasked %d" % len(unmasked_transcript_ids)
+#             print >> sys.stderr, "Current min exon  %d" % len(min_exon_transcript_ids)
+
+#             lincRNA_ids &= long_transcript_ids
+#             print >> sys.stderr, "Current lincIDS after masking SHORT %d" % len(lincRNA_ids)
+#             #lincRNA_ids &= unmasked_transcript_ids
+#             #print >> sys.stderr, "Current lincIDS after masking CODING %d"  % len(lincRNA_ids)
+#             lincRNA_ids &= min_exon_transcript_ids
+#             print >> sys.stderr, "Current lincIDS after masking single EXON %d" % len(lincRNA_ids)
 
            
-            possible_lincs_filename = "possible_lincs.gtf"
-            select_gtf(current_asm_gtf, lincRNA_ids, possible_lincs_filename)
+#             possible_lincs_filename = "possible_lincs.gtf"
+#             select_gtf(current_asm_gtf, lincRNA_ids, possible_lincs_filename)
 
 
-        #########################
-        ##This is code that is used in case the mother job had crushed and one wants
-        ##to restart from the pfam,csf step..
-        if (runCuff == 0):
-            print >> sys.stderr,"Skipped Cufflinks section updating parameters"
-            possible_lincs_filename = "possible_lincs.gtf"
-            deeply_covered_gtf_filename = "probably_full_length.gtf"
-            current_asm_gtf = deeply_covered_gtf_filename
-            current_asm_ids = get_gtf_ids(current_asm_gtf)
-            lincRNA_ids = get_gtf_ids(possible_lincs_filename)
+#         #########################
+#         ##This is code that is used in case the mother job had crushed and one wants
+#         ##to restart from the pfam,csf step..
+#         if (runCuff == 0):
+#             print >> sys.stderr,"Skipped Cufflinks section updating parameters"
+#             possible_lincs_filename = "possible_lincs.gtf"
+#             deeply_covered_gtf_filename = "probably_full_length.gtf"
+#             current_asm_gtf = deeply_covered_gtf_filename
+#             current_asm_ids = get_gtf_ids(current_asm_gtf)
+#             lincRNA_ids = get_gtf_ids(possible_lincs_filename)
             
-            ##Subtract mask file (before running cuffdiff)
-            unmasked_transcript_ids = current_asm_ids
-            # # If a mask GTF file is provided, cuffcompare against it to import reference metadata
-            if params.mask_gtf != None:
-                print >>sys.stderr, "[%s] Masking transcripts" % right_now()
-                unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
-                unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
-                current_asm_gtf = unmasked_gtf
-                current_asm_ids = unmasked_transcript_ids
-                lincRNA_ids = get_gtf_ids(current_asm_gtf)
+#             ##Subtract mask file (before running cuffdiff)
+#             unmasked_transcript_ids = current_asm_ids
+#             # # If a mask GTF file is provided, cuffcompare against it to import reference metadata
+#             if params.mask_gtf != None:
+#                 print >>sys.stderr, "[%s] Masking transcripts" % right_now()
+#                 unmasked_gtf = subtract_mask_transcripts(current_asm_gtf, params.mask_gtf)
+#                 unmasked_transcript_ids = get_gtf_ids(unmasked_gtf)
+#                 current_asm_gtf = unmasked_gtf
+#                 current_asm_ids = unmasked_transcript_ids
+#                 lincRNA_ids = get_gtf_ids(current_asm_gtf)
 
-        """  Old pipeline filtered CSF and pfam prior to naming lincRNAs
-        no_pfam_hit_ids = set([])
-        possible_lincs_filename2=possible_lincs_filename
-        #We should run this on all possible lincs rather than the current_asm_gtf
-        if params.fasta != None :
-            #no_pfam_hit_ids = get_pfam_hit_transcripts(current_asm_gtf, params.fasta, params.system_params.lsf_nodes)
-            possible_lincs_filename_exPfam = "possible_lincs_extendPFAM.gtf"
-            (no_pfam_hit_ids , positive_pfam_hit_ids) = get_pfam_hit_transcripts(possible_lincs_filename, params.fasta, params.system_params.lsf_nodes,possible_lincs_filename_exPfam)
-            lincRNA_ids &= no_pfam_hit_ids
-            possible_lincs_filename2 = "possible_lincs_noPfam.gtf"
-            select_gtf(possible_lincs_filename_exPfam, lincRNA_ids, possible_lincs_filename2)
+#         """  Old pipeline filtered CSF and pfam prior to naming lincRNAs
+#         no_pfam_hit_ids = set([])
+#         possible_lincs_filename2=possible_lincs_filename
+#         #We should run this on all possible lincs rather than the current_asm_gtf
+#         if params.fasta != None :
+#             #no_pfam_hit_ids = get_pfam_hit_transcripts(current_asm_gtf, params.fasta, params.system_params.lsf_nodes)
+#             possible_lincs_filename_exPfam = "possible_lincs_extendPFAM.gtf"
+#             (no_pfam_hit_ids , positive_pfam_hit_ids) = get_pfam_hit_transcripts(possible_lincs_filename, params.fasta, params.system_params.lsf_nodes,possible_lincs_filename_exPfam)
+#             lincRNA_ids &= no_pfam_hit_ids
+#             possible_lincs_filename2 = "possible_lincs_noPfam.gtf"
+#             select_gtf(possible_lincs_filename_exPfam, lincRNA_ids, possible_lincs_filename2)
 
-        # Calculate CSF score for possible long noncoding transcripts
-        #negative_csf_ids = get_negative_csf_transfrags(possible_lincs_filename, params.system_params.lsf_nodes)
-        possible_lincs_filename_exPfamCsf = "possible_lincs_noPfam_extendPFAMCsf.gtf"
-        (negative_csf_ids, positive_csf_ids) = get_negative_csf_transfrags(possible_lincs_filename_exPfam, params.system_params.lsf_nodes,possible_lincs_filename_exPfamCsf)
-        lincRNA_ids &= negative_csf_ids
-        """
+#         # Calculate CSF score for possible long noncoding transcripts
+#         #negative_csf_ids = get_negative_csf_transfrags(possible_lincs_filename, params.system_params.lsf_nodes)
+#         possible_lincs_filename_exPfamCsf = "possible_lincs_noPfam_extendPFAMCsf.gtf"
+#         (negative_csf_ids, positive_csf_ids) = get_negative_csf_transfrags(possible_lincs_filename_exPfam, params.system_params.lsf_nodes,possible_lincs_filename_exPfamCsf)
+#         lincRNA_ids &= negative_csf_ids
+#         """
         
-        print >> sys.stderr, "Found %d possible lincRNAs" % len(lincRNA_ids)
+#         print >> sys.stderr, "Found %d possible lincRNAs" % len(lincRNA_ids)
                  
-        # Extract the final catalog of lincRNAs
-        possible_lincs_final_filename="possible_lincs_final.gtf"
-        select_gtf(current_asm_gtf, lincRNA_ids, possible_lincs_final_filename)
+#         # Extract the final catalog of lincRNAs
+#         possible_lincs_final_filename="possible_lincs_final.gtf"
+#         select_gtf(current_asm_gtf, lincRNA_ids, possible_lincs_final_filename)
         
 
-        merge_gtf_list = []
+#         merge_gtf_list = []
         
-        if params.external_linc_gtf != None and run_meta_assembly == 0:
-            merge_gtf_list = [possible_lincs_final_filename, params.external_linc_gtf]
-        else:
-            merge_gtf_list = [possible_lincs_final_filename, possible_lincs_final_filename]
+#         if params.external_linc_gtf != None and run_meta_assembly == 0:
+#             merge_gtf_list = [possible_lincs_final_filename, params.external_linc_gtf]
+#         else:
+#             merge_gtf_list = [possible_lincs_final_filename, possible_lincs_final_filename]
 
-        if params.ref_gtf != None:
-            merged_lincs = merge_gtfs(merge_gtf_list, "merged", params.ref_gtf)
-        else:
-            merged_lincs = merge_gtfs(merge_gtf_list, "merged")
+#         if params.ref_gtf != None:
+#             merged_lincs = merge_gtfs(merge_gtf_list, "merged", params.ref_gtf)
+#         else:
+#             merged_lincs = merge_gtfs(merge_gtf_list, "merged")
 
-        # Collect some statistics about how the discovered lincRNA set compares to the reference GTF.
-        # compare_to_reference
+#         # Collect some statistics about how the discovered lincRNA set compares to the reference GTF.
+#         # compare_to_reference
 
-        # Run Loyal's linc naming script to annotate the lincRNA catalog with sensible names
-        lincs = name_lincs(merged_lincs, genome=params.genome, verbose=False)
-        printLincs(open("linc_catalog.gtf", "w"), lincs)
+#         # Run Loyal's linc naming script to annotate the lincRNA catalog with sensible names
+#         lincs = name_lincs(merged_lincs, genome=params.genome, verbose=False)
+#         printLincs(open("linc_catalog.gtf", "w"), lincs)
 
-        gtf_to_genbank("linc_catalog.gtf", "linc_catalog.gbk",params.genome)
+#         gtf_to_genbank("linc_catalog.gtf", "linc_catalog.gbk",params.genome)
 
 
-        # *** #
-        #Generate the level 1 (no CSF no PFAM) and level 2 sets 
-        current_asm_gtf = "linc_catalog.gtf"
-        current_asm_ids = get_gtf_ids(current_asm_gtf)
-        lincRNA_ids = current_asm_ids
+#         # *** #
+#         #Generate the level 1 (no CSF no PFAM) and level 2 sets 
+#         current_asm_gtf = "linc_catalog.gtf"
+#         current_asm_ids = get_gtf_ids(current_asm_gtf)
+#         lincRNA_ids = current_asm_ids
         
         
-        no_pfam_hit_ids = set([])
-        possible_lincs_filename = current_asm_gtf
+#         no_pfam_hit_ids = set([])
+#         possible_lincs_filename = current_asm_gtf
         
-        #We should run this on all possible lincs rather than the current_asm_gtf
-        neg_pfam_hit_ids = lincRNA_ids
-        if params.fasta != None :
-            #no_pfam_hit_ids = get_pfam_hit_transcripts(current_asm_gtf, params.fasta, params.system_params.lsf_nodes)
-            possible_lincs_filename_exPfam = "linc_catalog_extendPFAM.gtf"
-            (neg_pfam_hit_ids , pos_pfam_hit_ids) = get_pfam_hit_transcripts(possible_lincs_filename, params.fasta, params.system_params.lsf_nodes,possible_lincs_filename_exPfam)
+#         #We should run this on all possible lincs rather than the current_asm_gtf
+#         neg_pfam_hit_ids = lincRNA_ids
+#         if params.fasta != None :
+#             #no_pfam_hit_ids = get_pfam_hit_transcripts(current_asm_gtf, params.fasta, params.system_params.lsf_nodes)
+#             possible_lincs_filename_exPfam = "linc_catalog_extendPFAM.gtf"
+#             (neg_pfam_hit_ids , pos_pfam_hit_ids) = get_pfam_hit_transcripts(possible_lincs_filename, params.fasta, params.system_params.lsf_nodes,possible_lincs_filename_exPfam)
         
-        # Calculate CSF score for possible long noncoding transcripts
-        possible_lincs_filename_exPfamCsf = "linc_catalog_extendPFAMCsf.gtf"
-        (neg_csf_ids, pos_csf_ids) = get_negative_csf_transfrags(possible_lincs_filename_exPfam, params.system_params.lsf_nodes,possible_lincs_filename_exPfamCsf, params.genome)
+#         # Calculate CSF score for possible long noncoding transcripts
+#         possible_lincs_filename_exPfamCsf = "linc_catalog_extendPFAMCsf.gtf"
+#         (neg_csf_ids, pos_csf_ids) = get_negative_csf_transfrags(possible_lincs_filename_exPfam, params.system_params.lsf_nodes,possible_lincs_filename_exPfamCsf, params.genome)
         
-        curr_asm_gtf = possible_lincs_filename_exPfamCsf
+#         curr_asm_gtf = possible_lincs_filename_exPfamCsf
         
-        #Cross with pseudogenes
-        neg_pseudo_ids = set([])
-        possible_lincs_filename_exPfamCsfPseudo = "linc_catalog_extendPFAMCsfPseudo.gtf"
-        if params.pseudogene != None:
-            (pos_pseudo_ids,neg_pseudo_ids) = annot_overlap_transcripts (possible_lincs_filename_exPfamCsf,params.pseudogene, "pseudogene" ,possible_lincs_filename_exPfamCsfPseudo)
-            curr_asm_gtf = possible_lincs_filename_exPfamCsfPseudo
-        else:
-            neg_pseudo_ids = lincRNA_ids
+#         #Cross with pseudogenes
+#         neg_pseudo_ids = set([])
+#         possible_lincs_filename_exPfamCsfPseudo = "linc_catalog_extendPFAMCsfPseudo.gtf"
+#         if params.pseudogene != None:
+#             (pos_pseudo_ids,neg_pseudo_ids) = annot_overlap_transcripts (possible_lincs_filename_exPfamCsf,params.pseudogene, "pseudogene" ,possible_lincs_filename_exPfamCsfPseudo)
+#             curr_asm_gtf = possible_lincs_filename_exPfamCsfPseudo
+#         else:
+#             neg_pseudo_ids = lincRNA_ids
         
-        #Cross with merged annotations
-        external_transcript_ids = set([])
-        if params.external_linc_gtf != None:
-            non_external_gtf = subtract_mask_transcripts(current_asm_gtf, params.external_linc_gtf )
-            non_external_transcript_ids = get_gtf_ids(non_external_gtf)
-            external_transcript_ids = lincRNA_ids - non_external_transcript_ids
+#         #Cross with merged annotations
+#         external_transcript_ids = set([])
+#         if params.external_linc_gtf != None:
+#             non_external_gtf = subtract_mask_transcripts(current_asm_gtf, params.external_linc_gtf )
+#             non_external_transcript_ids = get_gtf_ids(non_external_gtf)
+#             external_transcript_ids = lincRNA_ids - non_external_transcript_ids
         
-        # Level 1 : csf_neg, pfam_neg, pseudo_neg and merge_file_neg
-        lincRNA_ids1 = set([])
-        lincRNA_ids1 = lincRNA_ids1 | lincRNA_ids
-        lincRNA_ids1 &= neg_pfam_hit_ids
-        lincRNA_ids1 &= neg_csf_ids
-        lincRNA_ids1 &= neg_pseudo_ids 
-        lincRNA_ids1 = lincRNA_ids1 | external_transcript_ids
-        linc_catalog_level1 = "linc_catalog.level1.gtf"
-        select_gtf(curr_asm_gtf, lincRNA_ids1, linc_catalog_level1)
+#         # Level 1 : csf_neg, pfam_neg, pseudo_neg and merge_file_neg
+#         lincRNA_ids1 = set([])
+#         lincRNA_ids1 = lincRNA_ids1 | lincRNA_ids
+#         lincRNA_ids1 &= neg_pfam_hit_ids
+#         lincRNA_ids1 &= neg_csf_ids
+#         lincRNA_ids1 &= neg_pseudo_ids 
+#         lincRNA_ids1 = lincRNA_ids1 | external_transcript_ids
+#         linc_catalog_level1 = "linc_catalog.level1.gtf"
+#         select_gtf(curr_asm_gtf, lincRNA_ids1, linc_catalog_level1)
         
-        # Level 2 : others
-        linc_catalog_level2 = "linc_catalog.level2.gtf"
-        lincRNA_ids2 = lincRNA_ids - lincRNA_ids1
-        #print >> sys.stderr, "length of lincRNA ids : %d" % len(lincRNA_ids)
-        #print >> sys.stderr, "length of lincRNA ids1 : %d" % len(lincRNA_ids1)
-        #print >> sys.stderr, lincRNA_ids
-        #print >> sys.stderr, lincRNA_ids1
-        #print >> sys.stderr, lincRNA_ids2
+#         # Level 2 : others
+#         linc_catalog_level2 = "linc_catalog.level2.gtf"
+#         lincRNA_ids2 = lincRNA_ids - lincRNA_ids1
+#         #print >> sys.stderr, "length of lincRNA ids : %d" % len(lincRNA_ids)
+#         #print >> sys.stderr, "length of lincRNA ids1 : %d" % len(lincRNA_ids1)
+#         #print >> sys.stderr, lincRNA_ids
+#         #print >> sys.stderr, lincRNA_ids1
+#         #print >> sys.stderr, lincRNA_ids2
         
-        select_gtf(curr_asm_gtf, lincRNA_ids2, linc_catalog_level2) 
+#         select_gtf(curr_asm_gtf, lincRNA_ids2, linc_catalog_level2) 
         
-        finish_time = datetime.now()
-        duration = finish_time - start_time
-        print >> sys.stderr,"-----------------------------------------------"
-        print >> sys.stderr, "Trancriptome catalog build complete [%s elapsed]" %  formatTD(duration)
+#         finish_time = datetime.now()
+#         duration = finish_time - start_time
+#         print >> sys.stderr,"-----------------------------------------------"
+#         print >> sys.stderr, "Trancriptome catalog build complete [%s elapsed]" %  formatTD(duration)
 
-    except Usage, err:
-        print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
-        #print >> sys.stderr, "    for detailed help see http://spats.cbcb.umd.edu/manual.html"
-        return 2
-
+#     except Usage, err:
+#         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
+#         #print >> sys.stderr, "    for detailed help see http://spats.cbcb.umd.edu/manual.html"
+#         return 2
 
 def main2(argv=None):
     warnings.filterwarnings("ignore", "tmpnam is a potential security risk") #
