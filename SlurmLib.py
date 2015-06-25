@@ -75,12 +75,12 @@ class SlurmJob(object):
 			sbatch_str = ["sbatch"]
 		
 		if notify:
-			sbatch_str.extend(["--mail-type=END"])
+			sbatch_str.extend(["--mail-type","END"])
 		
 		sbatch_str.extend(["-p", self.queue])
 		
 		if self.job_name != None:
-			sbatch_str.extend(["--job-name=%s" % self.job_name])
+			sbatch_str.extend(["--job-name",self.job_name])
 		
 		#TODO: Do I really need this?
 		#if self.group != None:
@@ -89,13 +89,13 @@ class SlurmJob(object):
 		global slurm_mem
 		if job_mem != None and slurm_mem != None:
 			self.job_mem = min(self.job_mem, slurm_mem)
-			sbatch_str.extend(["--mem=%d" % self.job_mem])
+			sbatch_str.extend(["--mem",self.job_mem])
 		
 		#sbatch_str.extend(["-R span[hosts=1]"])
 		
 		sbatch_str.extend(["-o", self.outfile])
 		sbatch_str.extend(["-e", self.errfile])
-		sbatch_str.extend(['--wrap="%s"' % self.cmd_str])
+		sbatch_str.extend(["--wrap",self.cmd_str])
 		
 		self.sbatch_str = sbatch_str
 		
