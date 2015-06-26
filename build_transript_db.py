@@ -72,6 +72,7 @@ use_message = '''
      --external-linc-gtf            <string>
      --csf-score                    <int>
      --out-prefix                   <String>
+     --run-cufflinks        <int>   [ default: 1  ]
      --run-non-assembly-mode
      --run-merge-catalog-mode
      --run-get-intergenic-mode
@@ -91,6 +92,7 @@ output_dir = "./"
 logging_dir = output_dir + "logs/"
 run_log = None
 run_cmd = None
+run_cufflinks = 1
 run_meta_assembly = 0
 non_assembly_mode = 0
 merge_catalog_mode = 0
@@ -212,6 +214,7 @@ class TestParams:
                                         "lsf-mem=",
                                         "csf-score-threshold=",
                                         "out-prefix=",
+                                        "run-cufflinks=",
                                         "run-meta-assembly",
                                         "run-non-assembly-mode",
                                         "run-merge-catalog-mode",
@@ -286,6 +289,8 @@ class TestParams:
                 get_intergenic_mode = 1
             if option == "--pseudogene" :
                 self.pseudogene = value
+            if option == "--run-cufflinks" :
+                self.run_cufflinks = value
             if option in ("-o", "--output-dir"):
                 output_dir = value + "/"
                 logging_dir = output_dir + "logs/"
@@ -1901,10 +1906,10 @@ def cuffmerge(params,gtf_filename_manifest,ref_gtf=None,outDir="./tmp"):
 
         
 #         #### Part 1: Cufflinks Runs
-#         runCuff=1
+#         run_cufflinks=1
 
 
-#         if runCuff == 1:
+#         if run_cufflinks == 1:
 #             print >> sys.stderr, "Running Cufflinks section \n"
 
 #             # Check that all the primary assemblies are accessible before starting the time consuming stuff
@@ -2048,7 +2053,7 @@ def cuffmerge(params,gtf_filename_manifest,ref_gtf=None,outDir="./tmp"):
 #         #########################
 #         ##This is code that is used in case the mother job had crushed and one wants
 #         ##to restart from the pfam,csf step..
-#         if (runCuff == 0):
+#         if (run_cufflinks == 0):
 #             print >> sys.stderr,"Skipped Cufflinks section updating parameters"
 #             possible_lincs_filename = "possible_lincs.gtf"
 #             deeply_covered_gtf_filename = "probably_full_length.gtf"
@@ -2218,6 +2223,7 @@ def main2(argv=None):
         
         global run_log
         global run_cmd
+        global run_cufflinks
         
         print >> sys.stderr
         print >> sys.stderr, "[%s] Beginning transcriptome build (suite v%s)" % (right_now(), get_version())
@@ -2312,9 +2318,9 @@ def main2(argv=None):
 
         
         #### Part 1: Cufflinks Runs
-        runCuff=1
+        #run_cufflinks=1
 
-        if runCuff == 1:
+        if run_cufflinks == 1:
             print >> sys.stderr, "Running Cufflinks section \n"
 
             # Check that all the primary assemblies are accessible before starting the time consuming stuff
@@ -2452,7 +2458,7 @@ def main2(argv=None):
         #########################
         ##This is code that is used in case the mother job had crashed and one wants
         ##to restart from the pfam,csf step..
-        if (runCuff == 0):
+        if (run_cufflinks == 0):
             print >> sys.stderr,"Skipped Cufflinks section updating parameters"
             possible_lincs_filename = "possible_lincs.gtf" # This is deeply covered, masked, filtered for length and n exons
             #deeply_covered_gtf_filename = "probably_full_length.gtf" # This is just deeply covered and masked
